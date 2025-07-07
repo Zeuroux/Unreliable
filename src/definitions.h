@@ -3,23 +3,48 @@
 #include <map>
 #include <Zydis/Zydis.h>
 
-struct PEDecodeConfig {
+struct ZydisConfig {
     ZydisMachineMode machineMode;
     ZydisStackWidth stackWidth;
+};
+
+constexpr ZydisConfig ZydisConfig64{
+    ZYDIS_MACHINE_MODE_LONG_64,
+    ZYDIS_STACK_WIDTH_64,
+};
+
+constexpr ZydisConfig ZydisConfig32{
+    ZYDIS_MACHINE_MODE_LEGACY_32,
+    ZYDIS_STACK_WIDTH_32,
+};
+
+struct PEDecodeConfig {
+    ZydisConfig zydis;
     ZydisMnemonic startAfterRetMnemonic;
     int previousCallOffset;
 };
 
 constexpr PEDecodeConfig Pe64Config{
-    ZYDIS_MACHINE_MODE_LONG_64,
-    ZYDIS_STACK_WIDTH_64,
+    ZydisConfig64,
     ZYDIS_MNEMONIC_MOV,
     1
 };
 
 constexpr PEDecodeConfig Pe32Config{
-    ZYDIS_MACHINE_MODE_LEGACY_32,
-    ZYDIS_STACK_WIDTH_32,
+    ZydisConfig32,
     ZYDIS_MNEMONIC_PUSH,
     2
 };
+
+inline const char* ToString(DimensionInfo::Identifier id) {
+    switch (id) {
+        case DimensionInfo::End: return "End";
+        case DimensionInfo::Nether: return "Nether";
+        case DimensionInfo::Overworld: return "Overworld";
+        default: return "Unknown";
+    }
+}
+
+#define COMBINE_HEX(high, low) (((high) << 16) | (low))
+#define DECIMAL_TO_HEX(value) ( ((uint32_t)(value)) & 0xFFFF )
+#define GET_VALUE(max, min) (COMBINE_HEX(DECIMAL_TO_HEX(max), DECIMAL_TO_HEX(min)))

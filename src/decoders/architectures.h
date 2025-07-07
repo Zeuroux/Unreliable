@@ -8,3 +8,4 @@ struct Decoded {
 };
 
 std::optional<Decoded> decodeArm64(uint32_t instr, uint64_t addr);
+//imagine x86

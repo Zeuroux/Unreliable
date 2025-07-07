@@ -1,5 +1,5 @@
 #include <unreliable.h>
-#include "decoders/arm64.h"
+#include "decoders/architectures.h"
 #include "utils/searchers.h"
 #include "parser.h"
 #include "definitions.h"
@@ -14,7 +14,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
     ZydisDecoder decoder;
     ZydisDisassembledInstruction instruction;
     ZydisDecoderContext ctx;
-    ZydisDecoderInit(&decoder, config.machineMode, config.stackWidth);
+    ZydisDecoderInit(&decoder, config.zydis.machineMode, config.zydis.stackWidth);
 
     std::vector<std::pair<uint64_t, uint64_t>> calls;
     std::vector<uint64_t> starts;
@@ -82,7 +82,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
 
     uint64_t overworldMovImm = 0;
     for (const auto& [imm, label] : dimensions) {
-        if (label == "overworld") {
+        if (label == "Overworld") {
             overworldMovImm = imm;
             break;
         }
@@ -136,6 +136,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
     return results;
 }
 
+template<const ZydisConfig& config>
 inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
@@ -145,7 +146,7 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
     ZydisDecoder decoder;
     ZydisDisassembledInstruction instruction;
     ZydisDecoderContext ctx;
-    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+    ZydisDecoderInit(&decoder, config.machineMode, config.stackWidth);
 
     std::vector<std::pair<uint64_t, uint64_t>> calls;
     std::vector<uint64_t> starts;
@@ -211,7 +212,7 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
 
     uint64_t overworldMovImm = 0;
     for (const auto& [imm, label] : dimensions) {
-        if (label == "overworld") {
+        if (label == "Overworld") {
             overworldMovImm = imm;
             break;
         }
@@ -310,14 +311,23 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
     return results;
 }
 
-std::vector<Result> findPatches(const char* filepath) {
-    const std::map<uint64_t, std::string> standard = {
-        {0x1000000, "end"}, {0x800000, "nether"}, {0x140ffc0, "overworld"}
-    }, elf64 = {
-        {0x1000000, "end"}, {0x800000, "nether"}, {0xffc0, "overworld_min"}, {0x140ffc0, "overworld"}
-    }, arm64 = {
-        {0x1000000, "end"}, {0x800000, "nether"}, {0xffc0, "overworld_min"}, {0x140, "overworld_max"}
-    };
+
+std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo) {    
+    std::map<uint64_t, std::string> standard, elf64, arm64;
+
+    for (const auto& [id, min, max] : dimInfo) {
+        if (id == DimensionInfo::Overworld) {
+            standard[GET_VALUE(max, min)] = ToString(id);
+            elf64[DECIMAL_TO_HEX(min)] = ToString(id);
+            arm64[DECIMAL_TO_HEX(min)] = ToString(id);
+            arm64[DECIMAL_TO_HEX(max)] = ToString(id);
+        } else {
+            standard[GET_VALUE(max, min)] = ToString(id);
+            elf64[GET_VALUE(max, min)] = ToString(id);
+            arm64[GET_VALUE(max, min)] = ToString(id);
+        }
+    }
+
 
     std::vector<Result> results;
     auto info = parseBinary(filepath);
@@ -328,7 +338,7 @@ std::vector<Result> findPatches(const char* filepath) {
             break;
         case FORMAT_ELF:
             if (info.arch == ARCH_X86)
-                results = GetELFx86(info, info.mode == MODE_64 ? elf64 : standard);
+                results = info.mode == MODE_64 ? GetELFx86<ZydisConfig64>(info, elf64) : GetELFx86<ZydisConfig32>(info, standard);
             else if (info.arch == ARCH_AARCH64)
                 results = GetELFArm64(info, arm64);
             break;

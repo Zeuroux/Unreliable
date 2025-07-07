@@ -1,4 +1,4 @@
-#include "arm64.h"
+#include "architectures.h"
 
 std::optional<Decoded> decodeArm64(uint32_t instr, uint64_t addr) {
     if ((instr >> 26) == 0b100101) {

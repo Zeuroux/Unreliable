@@ -12,4 +12,14 @@ struct Result {
         : label(l), address(a), immediate(i) {}
 };
 
-std::vector<Result> findPatches(const char* filepath);
+struct DimensionInfo {
+    enum Identifier { End, Nether, Overworld } identifier;
+    int min = 0;
+    int max;
+
+    DimensionInfo(Identifier id, int minValue, int maxValue)
+        : identifier(id), min(minValue), max(maxValue) {}
+};
+
+
+std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo = {{DimensionInfo::End, 0, 256}, {DimensionInfo::Nether, 0, 128}, {DimensionInfo::Overworld, -64, 320}});

@@ -25,12 +25,18 @@ if(MINGW OR WIN32)
       -ftree-vectorize
       -finline-functions
       -fstrict-aliasing
+      -fipa-pta
+      -fipa-cp
+      -fomit-frame-pointer
+      -fno-stack-protector
       -falign-functions=32
       -falign-loops=16
+      -ffunction-sections
+      -fdata-sections
       -DNDEBUG
   )
 
-  string (REPLACE ";" " " OPT_FLAGS_STR "${OPT_FLAGS}")
+  string(REPLACE ";" " " OPT_FLAGS_STR "${OPT_FLAGS}")
 
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${OPT_FLAGS_STR} -fno-rtti")
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${OPT_FLAGS_STR}")
@@ -38,10 +44,15 @@ if(MINGW OR WIN32)
   set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} \
       -flto=8 \
       -fuse-linker-plugin \
+      -Wl,--gc-sections \
+      -Wl,-O1 \
+      -Wl,--sort-section=alignment \
       -s")
 endif()
 
 set(BUILD_SHARED_LIBS OFF)
+set(BUILD_COMMAND_LINE_TOOLS OFF)
+set(ZYAN_WHOLE_PROGRAM_OPTIMIZATION ON)
 
 include(FetchContent)
 
