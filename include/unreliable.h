@@ -2,6 +2,7 @@
 #include<cstdint>
 #include<iostream>
 #include<vector>
+#include <functional>
 
 struct Result {
     std::string label;
@@ -22,4 +23,4 @@ struct DimensionInfo {
 };
 
 
-std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo = {{DimensionInfo::End, 0, 256}, {DimensionInfo::Nether, 0, 128}, {DimensionInfo::Overworld, -64, 320}});
+std::vector<Result> findPatches(const char* filepath, std::function<void(int)> progressCallback = nullptr, std::vector<DimensionInfo> dimInfo = {{DimensionInfo::End, 0, 256}, {DimensionInfo::Nether, 0, 128}, {DimensionInfo::Overworld, -64, 320}});

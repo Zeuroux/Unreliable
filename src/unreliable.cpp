@@ -5,7 +5,7 @@
 #include "definitions.h"
 
 template<const PEDecodeConfig& config>
-inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions) {
+inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
     ZyanUSize offset = 0x1000 - info.file_offset;
@@ -27,6 +27,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
     std::unordered_map<uint64_t, std::vector<uint64_t>> movsMap;
     bool isLastRet = false;
     ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
+    int lastPercent = -1;
 
     while (offset < buffer_size) {
         if (ZYAN_SUCCESS(ZydisDecoderDecodeInstruction(&decoder, &ctx, data + offset, buffer_size - offset, &instruction.info))) {
@@ -69,6 +70,13 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
         }
         offset += instruction.info.length;
         address += instruction.info.length;
+        if (progressCallback) {
+            int percent = static_cast<int>((offset * 100) / buffer_size);
+            if (percent != lastPercent) {
+                progressCallback(percent);
+                lastPercent = percent;
+            }
+        }
     }
     std::vector<Result> results;
     const uint64_t firstImportantImmediate = importantImmediates[0];
@@ -137,7 +145,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
 }
 
 template<const ZydisConfig& config>
-inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions) {
+inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
     ZyanUSize offset = info.file_offset;
@@ -159,6 +167,7 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
     std::unordered_map<uint64_t, std::vector<uint64_t>> movsMap;
     bool isLastRet = false;
     ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
+    int lastPercent = -1;
 
     while (offset < buffer_size) {
         if (ZYAN_SUCCESS(ZydisDecoderDecodeInstruction(&decoder, &ctx, data + offset, buffer_size - offset, &instruction.info))) {
@@ -198,6 +207,13 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
         }
         offset += instruction.info.length;
         address += instruction.info.length;
+        if (progressCallback) {
+            int percent = static_cast<int>((offset * 100) / buffer_size);
+            if (percent != lastPercent) {
+                progressCallback(percent);
+                lastPercent = percent;
+            }
+        }
     }
     std::vector<Result> results;
 
@@ -255,11 +271,11 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
     return results;
 }
 
-inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions) {
+inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
     size_t offset = info.file_offset;
-    const size_t size = info.size;
+    const size_t buffer_size = info.size;
 
     std::vector<std::pair<uint64_t, uint64_t>> calls;
     std::vector<uint64_t> starts;
@@ -269,8 +285,9 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
     for (auto&& [imm, _] : dimensions) allowedImms.insert(imm);
 
     bool lastWasRet = false;
+    int lastPercent = -1;
 
-    while (offset + 4 <= size) {
+    while (offset + 4 <= buffer_size) {
         uint32_t instr = data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24);
         if (auto dec = decodeArm64(instr, address)) {
             switch (dec->cls) {
@@ -282,6 +299,13 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
             }
         }
         offset += 4; address += 4;
+        if (progressCallback) {
+            int percent = static_cast<int>((offset * 100) / buffer_size);
+            if (percent != lastPercent) {
+                progressCallback(percent);
+                lastPercent = percent;
+            }
+        }
     }
     std::vector<Result> results;
 
@@ -311,8 +335,7 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
     return results;
 }
 
-
-std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo) {    
+std::vector<Result> findPatches(const char* filepath, std::function<void(int)> progressCallback, std::vector<DimensionInfo> dimInfo) {    
     std::map<uint64_t, std::string> standard, elf64, arm64;
 
     for (const auto& [id, min, max] : dimInfo) {
@@ -334,13 +357,13 @@ std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo>
     switch (info.format) {
         case FORMAT_PE:
             if (info.arch == ARCH_X86)
-                results = info.mode == MODE_64 ? GetPEx86<Pe64Config>(info, standard) : GetPEx86<Pe32Config>(info, standard);
+                results = info.mode == MODE_64 ? GetPEx86<Pe64Config>(info, standard, progressCallback) : GetPEx86<Pe32Config>(info, standard, progressCallback);
             break;
         case FORMAT_ELF:
             if (info.arch == ARCH_X86)
-                results = info.mode == MODE_64 ? GetELFx86<ZydisConfig64>(info, elf64) : GetELFx86<ZydisConfig32>(info, standard);
+                results = info.mode == MODE_64 ? GetELFx86<ZydisConfig64>(info, elf64, progressCallback) : GetELFx86<ZydisConfig32>(info, standard, progressCallback);
             else if (info.arch == ARCH_AARCH64)
-                results = GetELFArm64(info, arm64);
+                results = GetELFArm64(info, arm64, progressCallback);
             break;
         default:
             std::cerr << "Unsupported format: " << info.format << std::endl;

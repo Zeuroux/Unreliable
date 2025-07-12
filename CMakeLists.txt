@@ -5,7 +5,7 @@ project(Unreliable LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
+option(BUILD_TEST "build test" ON)
 if(MINGW OR WIN32)
   set(OPT_FLAGS
       -Ofast
@@ -92,8 +92,10 @@ target_include_directories(Unreliable
 
 target_link_libraries(Unreliable PRIVATE elfio pe-parse::pe-parse Zydis::Zydis)
 
-enable_testing()
-add_executable(tests tests/test.cpp)
-target_link_options(tests PRIVATE "-static")
-target_link_libraries(tests PRIVATE Unreliable)
-add_test(NAME tests COMMAND tests ../testing/android_client_arm64.so)
+if (BUILD_TEST)
+  enable_testing()
+  add_executable(tests tests/test.cpp)
+  target_link_options(tests PRIVATE "-static")
+  target_link_libraries(tests PRIVATE Unreliable)
+  add_test(NAME tests COMMAND tests ../testing/android_client_arm64.so)
+endif()
