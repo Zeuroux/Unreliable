@@ -67,10 +67,10 @@ BinaryInfo parseBinary(const std::string& filepath, std::function<void(bool, std
     auto info = BinaryInfo();
     ELFIO::elfio reader;
     if (reader.load(filepath)) {
-        parseElf(reader, info);
+        parseElf(reader, info, logCallback);
     }
     else if (auto pe = peparse::ParsePEFromFile(filepath.c_str())) {
-        parsePE(pe, info);
+        parsePE(pe, info, logCallback);
     }
     else {
         logCallback(true, "Not a valid executable or library");
