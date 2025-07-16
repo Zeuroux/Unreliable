@@ -334,7 +334,7 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
     return results;
 }
 
-std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo, std::function<void(int)> progressCallback, std::function<void(bool, std::string)> logCallback = nullptr) {    
+std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo, std::function<void(int)> progressCallback, std::function<void(bool, std::string)> logCallback) {    
     std::map<uint64_t, std::string> standard, elf64, arm64;
 
     for (const auto& [id, min, max] : dimInfo) {
