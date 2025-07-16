@@ -341,7 +341,7 @@ std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo>
         if (id == DimensionInfo::Overworld) {
             standard[GET_VALUE(max, min)] = ToString(id);
             elf64[DECIMAL_TO_HEX(min)] = ToString(id);
-            arm64[DECIMAL_TO_HEX(min)] = "Overworkd Min";
+            arm64[DECIMAL_TO_HEX(min)] = "Overworld Min";
             arm64[DECIMAL_TO_HEX(max)] = "Overworld Max";
         } else {
             standard[GET_VALUE(max, min)] = ToString(id);
