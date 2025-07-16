@@ -9,8 +9,8 @@ struct Result {
     uint64_t address;
     uint64_t immediate;
 
-    Result(const std::string& l, uint64_t a, uint64_t i)
-        : label(l), address(a), immediate(i) {}
+    Result(std::string l, uint64_t a, uint64_t i)
+        : label(std::move(l)), address(a), immediate(i) {}
 };
 
 struct DimensionInfo {
@@ -23,4 +23,4 @@ struct DimensionInfo {
 };
 
 
-std::vector<Result> findPatches(const char* filepath, std::function<void(int)> progressCallback = nullptr, std::vector<DimensionInfo> dimInfo = {{DimensionInfo::End, 0, 256}, {DimensionInfo::Nether, 0, 128}, {DimensionInfo::Overworld, -64, 320}});
+std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo = {{DimensionInfo::End, 0, 256}, {DimensionInfo::Nether, 0, 128}, {DimensionInfo::Overworld, -64, 320}}, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback = nullptr);

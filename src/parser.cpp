@@ -1,6 +1,7 @@
 #include "parser.h"
+#include "format"
 
-inline void parsePE(peparse::parsed_pe* pe, BinaryInfo& info) {
+inline void parsePE(peparse::parsed_pe* pe, BinaryInfo& info, std::function<void(bool, std::string)> logCallback) {
     info.format = FORMAT_PE;
     auto header = pe->peHeader.nt.FileHeader;
     auto machine = header.Machine;
@@ -14,7 +15,7 @@ inline void parsePE(peparse::parsed_pe* pe, BinaryInfo& info) {
             info.mode = MODE_32;
             break;
         default:
-            std::cerr << "Unsupported Architecture: " << to_hex_string(machine) << std::endl;
+            logCallback(true, std::format("Unsupported Architecture: %llx", machine));
             return;
     }
     peparse::IterSec(pe, [](void* data_ptr, const peparse::VA&, const std::string& sec_name,
@@ -29,7 +30,7 @@ inline void parsePE(peparse::parsed_pe* pe, BinaryInfo& info) {
         }, &info);
 }
 
-inline void parseElf(ELFIO::elfio& reader, BinaryInfo& info) {
+inline void parseElf(ELFIO::elfio& reader, BinaryInfo& info, std::function<void(bool, std::string)> logCallback) {
     info.format = FORMAT_ELF;
     auto machine = reader.get_machine();
     switch (machine) {
@@ -46,12 +47,12 @@ inline void parseElf(ELFIO::elfio& reader, BinaryInfo& info) {
             info.mode = MODE_ARM;
             break;
         default:
-            std::cerr << "Unsupported Architecture: " << machine << std::endl;
+            logCallback(true, std::format("Unsupported Architecture: %llx", machine));
             return;
     }
     auto sec = reader.sections[".text"];
     if (sec == nullptr) {
-        std::cerr << ".text section not found in ELF file\n";
+        logCallback(true, ".text section not found in ELF file");
         return;
     }
     info.data.resize(sec->get_size());
@@ -62,7 +63,7 @@ inline void parseElf(ELFIO::elfio& reader, BinaryInfo& info) {
     info.file_offset = sec->get_address() - sec->get_offset();
 }
 
-BinaryInfo parseBinary(const std::string& filepath) {
+BinaryInfo parseBinary(const std::string& filepath, std::function<void(bool, std::string)> logCallback) {
     auto info = BinaryInfo();
     ELFIO::elfio reader;
     if (reader.load(filepath)) {
@@ -72,7 +73,7 @@ BinaryInfo parseBinary(const std::string& filepath) {
         parsePE(pe, info);
     }
     else {
-        std::cout << "Not a valid executable or library" << std::endl;
+        logCallback(true, "Not a valid executable or library");
     }
     return info;
 }

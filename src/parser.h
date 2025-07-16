@@ -34,6 +34,6 @@ struct BinaryInfo {
 
 using ELFIO::to_hex_string;
 
-inline void parsePE(peparse::parsed_pe* pe, BinaryInfo& info);
-inline void parseElf(ELFIO::elfio& reader, BinaryInfo& info);
-BinaryInfo parseBinary(const std::string& filepath);
+inline void parsePE(peparse::parsed_pe* pe, BinaryInfo& info, std::function<void(bool, std::string)> logCallback);
+inline void parseElf(ELFIO::elfio& reader, BinaryInfo& info, std::function<void(bool, std::string)> logCallback);
+BinaryInfo parseBinary(const std::string& filepath, std::function<void(bool, std::string)> logCallback);
