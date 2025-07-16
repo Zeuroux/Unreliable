@@ -5,7 +5,7 @@
 #include "definitions.h"
 #include <format>
 template<const PEDecodeConfig& config>
-inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback) {
+inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback = nullptr) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
     ZyanUSize offset = 0x1000 - info.file_offset;
@@ -83,7 +83,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
     auto PWMC = movsMap[firstImportantImmediate];
     auto WMC = find_closest_pair(PWMC.data(), PWMC.size());
     auto DCF = find_max_less_than_fast(starts.data(), starts.size(), WMC);
-    logCallback(false, std::format("DCF: 0x %llx", DCF));
+    logCallback(false, std::format("DCF: {:#x}", DCF));
     std::vector<size_t> callIndices;
     find_indices_with_target(calls.data(), calls.size(), DCF, callIndices);
 
@@ -144,7 +144,7 @@ inline std::vector<Result> GetPEx86(const BinaryInfo& info, const std::map<uint6
 }
 
 template<const ZydisConfig& config>
-inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback) {
+inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback = nullptr) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
     ZyanUSize offset = info.file_offset;
@@ -220,7 +220,7 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
     auto PWMC = movsMap[firstImportantImmediate];
     auto WMC = find_closest_pair(PWMC.data(), PWMC.size());
     auto DCF = find_max_less_than_fast(starts.data(), starts.size(), WMC);
-    logCallback(false, std::format("DCF: 0x %llx", DCF));
+    logCallback(false, std::format("DCF: {:#x}", DCF));
 
     std::vector<size_t> callIndices;
     find_indices_with_target(calls.data(), calls.size(), DCF, callIndices);
@@ -270,7 +270,7 @@ inline std::vector<Result> GetELFx86(const BinaryInfo& info, const std::map<uint
     return results;
 }
 
-inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback) {
+inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<uint64_t, std::string>& dimensions, std::function<void(int)> progressCallback = nullptr, std::function<void(bool, std::string)> logCallback = nullptr) {
     const uint8_t* data = info.bytes;
     uint64_t address = info.virtual_address;
     size_t offset = info.file_offset;
@@ -311,7 +311,7 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
     auto& primaryMovs = movsMap[0x42100000];
     auto WMC = find_closest_pair(primaryMovs.data(), primaryMovs.size());
     auto DCF = find_max_less_than_fast(starts.data(), starts.size(), WMC);
-    logCallback(false, std::format("DCF: 0x %llx", DCF));
+    logCallback(false, std::format("DCF: {:#x}", DCF));
 
     std::vector<size_t> callIndices;
     find_indices_with_target(calls.data(), calls.size(), DCF, callIndices);
@@ -334,7 +334,7 @@ inline std::vector<Result> GetELFArm64(const BinaryInfo& info, const std::map<ui
     return results;
 }
 
-std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo, std::function<void(int)> progressCallback, std::function<void(bool, std::string)> logCallback) {    
+std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo> dimInfo, std::function<void(int)> progressCallback, std::function<void(bool, std::string)> logCallback = nullptr) {    
     std::map<uint64_t, std::string> standard, elf64, arm64;
 
     for (const auto& [id, min, max] : dimInfo) {
@@ -362,7 +362,7 @@ std::vector<Result> findPatches(const char* filepath, std::vector<DimensionInfo>
             if (info.arch == ARCH_X86)
                 results = info.mode == MODE_64 ? GetELFx86<ZydisConfig64>(info, elf64, progressCallback, logCallback) : GetELFx86<ZydisConfig32>(info, standard, progressCallback, logCallback);
             else if (info.arch == ARCH_AARCH64)
-                results = GetELFArm64(info, arm64, progressCallback);
+                results = GetELFArm64(info, arm64, progressCallback, logCallback);
             break;
         default:
             logCallback(true, std::format("Unsupported format: %i", (int)info.format));
