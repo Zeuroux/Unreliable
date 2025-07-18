@@ -4,6 +4,10 @@
 #include<vector>
 #include <functional>
 
+#define COMBINE_HEX(high, low) (((high) << 16) | (low))
+#define DECIMAL_TO_HEX(value) ( ((uint32_t)(value)) & 0xFFFF )
+#define GET_VALUE(max, min) (COMBINE_HEX(DECIMAL_TO_HEX(max), DECIMAL_TO_HEX(min)))
+
 struct Result {
     std::string label;
     uint64_t address;
